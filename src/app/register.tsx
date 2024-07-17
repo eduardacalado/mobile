@@ -8,6 +8,7 @@ import { colors } from "@/styles/colors";
 import { Button } from "@/components/button";
 
 import { api } from "@/server/api"
+import { useBadgeStore } from "@/store/badge-store";
 import axios, { isAxiosError } from "axios";
 
 const EVENT_ID = "9e9bd979-9d10-4915-b339-3786b1634f33"
@@ -17,6 +18,8 @@ export default function Register() {
     const [email, setEmail] = useState("")
     const [isLoading, setIsLoading] = useState(false)
 
+    const badgeStore = useBadgeStore()
+
     async function handleResgister() {
         try {
         if(!name.trim() || !email.trim()) {
@@ -25,12 +28,18 @@ export default function Register() {
 
         setIsLoading(true)
 
+        console.log(api.getUri())
+
         const registerResponse = await api.post(`/events/${EVENT_ID}/attendees`, { 
             name, 
             email,
          })
 
         if (registerResponse.data.attendeeId) {
+            const badgeResponse = await api.get(`/attendees/${registerResponse.data.attendeeId}/badge`)
+
+            badgeStore.save(badgeResponse.data.badge)
+
             Alert.alert("Inscrição", "Inscrição realizada com sucesso!", [
                 { text: "OK", onPress: () => router.push("/ticket")}
             ])
@@ -38,16 +47,20 @@ export default function Register() {
 
         } catch (error) {
             console.log(error)
-
+            setIsLoading(false)
+            
             if (isAxiosError(error)) {
+            //    console.log(error?.response?.data.message)
                 if(String(error.response?.data.message).includes("already registered")) {
                     return Alert.alert("Inscrição", "Este e-mail já está cadastrado!")
+                }
+
+                if(String(error.response?.data.message).includes("The maximum number of attendees for this event has been reached")) {
+                    return Alert.alert("Inscrição", "Este evento já atingiu o número máximo de participantes!")
                 }
             }
 
             Alert.alert("Inscrição", "Não foi possível realizar a incrição")
-        } finally {
-            setIsLoading(false)
         }
     }
 
