@@ -18,6 +18,7 @@ export default function Ticket() {
     const [expandQRCode, setExpandQRCode] = useState(false)
 
     const badgeStore = useBadgeStore()
+    console.log(badgeStore.data)
 
     async function handleShare() {
         try {
